@@ -210,3 +210,11 @@ tests/data/dna/Genomes_Core/OrthoFinder/
 .vscode/
 of_structure.sh
 testdata
+tests/data/proteome/Core/OrthoFinder/
+tests/data/proteome/Assign/OrthoFinder/
+
+# blast2mcl Rust build artefacts
+blast2mcl/target/
+
+# blast2mcl intermediate work directories
+**/*_graph.txt.work/

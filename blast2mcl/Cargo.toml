@@ -1,0 +1,14 @@
+[package]
+name = "blast2mcl"
+version = "0.1.0"
+edition = "2021"
+description = "Fast BLAST result processing for OrthoFinder: parses BLAST TSV output and writes MCL input graph"
+
+[[bin]]
+name = "blast2mcl"
+path = "src/main.rs"
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+rayon = "1"
+flate2 = "1"
