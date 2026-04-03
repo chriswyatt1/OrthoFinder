@@ -304,6 +304,51 @@ def compare_graphs(rust_path, python_path, tol):
 
 
 # ---------------------------------------------------------------------------
+# Step 3.5 — Time blast2mcl directly on existing BLAST files
+# ---------------------------------------------------------------------------
+
+def time_rust_waterfall(working_dir, species_to_use, n_seqs_per_species,
+                         tmpdir, threads, double_blast, v2_scores):
+    """Re-run blast2mcl on the BLAST files already in working_dir and return elapsed seconds."""
+    import subprocess
+    import orthofinder  # noqa: F401
+    from orthofinder.utils import parallel_task_manager
+
+    blast2mcl_bin = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "src", "orthofinder", "bin", "blast2mcl",
+    )
+    if not os.path.isfile(blast2mcl_bin):
+        print(f"WARNING: blast2mcl binary not found at {blast2mcl_bin!r}, skipping Rust timing")
+        return 0.0
+
+    wd = working_dir.rstrip(os.sep) + os.sep
+    output_path = os.path.join(tmpdir, "rust_timed_graph.txt")
+    cmd = [
+        blast2mcl_bin,
+        "--blast-dir", wd,
+        "--fasta-dir", wd,
+        "--species-to-use", ",".join(str(s) for s in species_to_use),
+        "--n-seqs-per-species", ",".join(str(n_seqs_per_species[s]) for s in species_to_use),
+        "--output", output_path,
+        "--threads", str(threads),
+    ]
+    if v2_scores:
+        cmd.append("--v2-scores")
+    if not double_blast:
+        cmd.extend(["--double-blast", "false"])
+
+    print(f"[Step 3.5] Timing blast2mcl directly…")
+    t = time.perf_counter()
+    result = subprocess.run(cmd, env=parallel_task_manager.my_env,
+                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    elapsed = time.perf_counter() - t
+    if result.returncode != 0:
+        print("WARNING: blast2mcl returned non-zero exit code during timing run")
+    return elapsed
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -348,6 +393,12 @@ def main():
         rust_graph = find_rust_graph(working_dir)
         print(f"[Step 3] Rust graph: {rust_graph}")
 
+        # 3.5. Re-run blast2mcl alone on existing BLAST files for a clean timing
+        rust_waterfall_time = time_rust_waterfall(
+            working_dir, species_to_use, n_seqs_per_species,
+            tmpdir, args.threads, args.double_blast, args.v2_scores,
+        )
+
         # 4. Python waterfall
         python_graph = os.path.join(tmpdir, "python_graph.txt")
         t1 = time.perf_counter()
@@ -357,9 +408,12 @@ def main():
         )
         python_waterfall_time = time.perf_counter() - t1
 
-        # Timing summary (note: rust_total includes diamond + MCL, not just waterfall)
+        # Timing summary
         print(f"\n[Timing] Full OrthoFinder run (incl. diamond+MCL): {rust_total:.2f}s")
+        print(f"[Timing] blast2mcl (Rust waterfall) only:           {rust_waterfall_time:.2f}s")
         print(f"[Timing] Python waterfall only:                     {python_waterfall_time:.2f}s")
+        if rust_waterfall_time > 0:
+            print(f"[Timing] Speedup (Python/Rust):                     {python_waterfall_time/rust_waterfall_time:.1f}x")
 
         # 5. Compare
         passed = compare_graphs(rust_graph, python_graph, args.tol)
