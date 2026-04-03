@@ -94,22 +94,21 @@ def run_orthofinder(fasta_dir, run_name, threads):
 
 
 def _find_working_dir(fasta_dir, run_name):
-    """Locate WorkingDirectory inside the OrthoFinder results for run_name."""
+    """Locate WorkingDirectory inside the OrthoFinder results for run_name.
+    If multiple matches exist (e.g. run_name, run_name_1, run_name_2),
+    return the most recently modified one."""
     of_dir = os.path.join(fasta_dir, "OrthoFinder")
     if not os.path.isdir(of_dir):
         sys.exit(f"ERROR: OrthoFinder results dir not found at {of_dir!r}")
 
-    pattern = os.path.join(of_dir, f"Results_{run_name}", "WorkingDirectory")
-    matches = glob.glob(pattern)
-    if not matches:
-        # Also try with date suffix
-        matches = glob.glob(os.path.join(of_dir, f"Results_{run_name}_*", "WorkingDirectory"))
+    matches = glob.glob(os.path.join(of_dir, f"Results_{run_name}", "WorkingDirectory"))
+    matches += glob.glob(os.path.join(of_dir, f"Results_{run_name}_*", "WorkingDirectory"))
     if not matches:
         sys.exit(
-            f"ERROR: Cannot find WorkingDirectory for run '{run_name}' in {of_dir!r}\n"
-            f"Searched: {pattern}"
+            f"ERROR: Cannot find WorkingDirectory for run '{run_name}' in {of_dir!r}"
         )
-    return matches[0]
+    # Pick the most recently modified WorkingDirectory.
+    return max(matches, key=os.path.getmtime)
 
 
 # ---------------------------------------------------------------------------
