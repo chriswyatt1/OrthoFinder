@@ -1,0 +1,13 @@
+{
+  "name": "OrthoFinder Dev",
+  "image": "mcr.microsoft.com/devcontainers/python:3.11-bullseye",
+  "features": {
+    "ghcr.io/devcontainers/features/rust:1": {
+      "version": "stable"
+    }
+  },
+  "postCreateCommand": "pip install -e '.[dev]'",
+  "remoteEnv": {
+    "PATH": "${containerEnv:PATH}:/workspaces/OrthoFinder/src/orthofinder/bin"
+  }
+}
