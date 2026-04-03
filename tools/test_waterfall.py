@@ -29,6 +29,7 @@ import re
 import shutil
 import sys
 import tempfile
+import time
 
 # ---------------------------------------------------------------------------
 # Locate repo root regardless of where the script is called from
@@ -334,7 +335,9 @@ def main():
 
     try:
         # 1. OrthoFinder run (Rust waterfall)
+        t0 = time.perf_counter()
         working_dir = run_orthofinder(fasta_dir, run_name, args.threads)
+        rust_total = time.perf_counter() - t0
         print(f"[Step 1] WorkingDirectory: {working_dir}")
 
         # 2. Species info
@@ -347,10 +350,16 @@ def main():
 
         # 4. Python waterfall
         python_graph = os.path.join(tmpdir, "python_graph.txt")
+        t1 = time.perf_counter()
         run_python_waterfall(
             working_dir, species_to_use, n_seqs_per_species,
             python_graph, args.threads, args.double_blast, args.v2_scores,
         )
+        python_waterfall_time = time.perf_counter() - t1
+
+        # Timing summary (note: rust_total includes diamond + MCL, not just waterfall)
+        print(f"\n[Timing] Full OrthoFinder run (incl. diamond+MCL): {rust_total:.2f}s")
+        print(f"[Timing] Python waterfall only:                     {python_waterfall_time:.2f}s")
 
         # 5. Compare
         passed = compare_graphs(rust_graph, python_graph, args.tol)
