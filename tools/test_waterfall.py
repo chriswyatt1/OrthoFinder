@@ -173,28 +173,23 @@ def find_rust_graph(working_dir):
 def run_python_waterfall(working_dir, species_to_use, n_seqs_per_species,
                          output_path, threads, double_blast, v2_scores):
     """Call _run_python_waterfall_lt3 from gathering.py and copy the graph."""
-    import collections
     import orthofinder  # noqa: F401 — initialise package before sub-imports
 
     from orthofinder.utils import files, parallel_task_manager
+    from orthofinder.utils.util import SequencesInfo
     from orthofinder.orthogroups.gathering import (
         GetSequenceLengths,
         _run_python_waterfall_lt3,
     )
 
-    # Build a minimal seqsInfo namedtuple matching what OrthoFinder uses.
-    SeqsInfo = collections.namedtuple(
-        "SeqsInfo",
-        ["speciesToUse", "nSeqsPerSpecies", "nSpecies",
-         "nSeqs", "seqStartingIndices"],
-    )
+    # Use OrthoFinder's own SequencesInfo namedtuple (module-level, picklable).
     seq_starts = []
     offset = 0
     for sp in species_to_use:
         seq_starts.append(offset)
         offset += n_seqs_per_species[sp]
 
-    seqsInfo = SeqsInfo(
+    seqsInfo = SequencesInfo(
         speciesToUse       = species_to_use,
         nSeqsPerSpecies    = n_seqs_per_species,
         nSpecies           = len(species_to_use),
