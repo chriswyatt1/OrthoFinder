@@ -218,3 +218,4 @@ blast2mcl/target/
 
 # blast2mcl intermediate work directories
 **/*_graph.txt.work/
+*_version.py
